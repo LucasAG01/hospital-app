@@ -232,7 +232,7 @@ public class hospitalApp {
             }
 
             // 4. Intertar en POStgreSQL
-            String sqlPostgre = "INSERT INTO hospital.tratamientos (is_tratamiento, id_medico, id_especialdiad) VALUES (?,?,?)";
+            String sqlPostgre = "INSERT INTO hospital.tratamientos (id_tratamiento, id_medico, id_especialidad) VALUES (?,?,?)";
             try(PreparedStatement ps = conPostgre.prepareStatement(sqlPostgre)){
                 ps.setInt(1, nuevoIdTratamiento);
                 ps.setInt(2, idMedico);
@@ -244,7 +244,7 @@ public class hospitalApp {
 
             String SQLMysql= "INSERT INTO tratamientos (id_tratamiento, nombre_tratamiento, descripcion) VALUES (?,?,?)";
 
-            try(PreparedStatement ps = conPostgre.prepareStatement(SQLMysql)){
+            try(PreparedStatement ps = conMysql.prepareStatement(SQLMysql)){
                 ps.setInt(1, nuevoIdTratamiento);
                 ps.setString(2, nombre); //nombre al principio de la funcion que pasamos
                 ps.setString(3, descripcion);
@@ -258,6 +258,144 @@ public class hospitalApp {
             e.printStackTrace();
         }
     }
+
+
+
+
+    // Apartado 7 Elimianr Tratamiento por nombre
+
+    // mysql -> tiene nombre_tratamiento, mysql NO, solo id
+
+    // 1. Buscar el Id por nombre een Mysql
+    // 2. Borrar tratamiento (y relaciones salas_tratamientos)
+    // 3. Borrar tratamiento een Mysql
+
+    // Como no está ON DELETE CASCADE en salas_tratamientos, primero hay que borrar la relacion.
+
+    public static void eliminarTratamientoPorNombre (String nombre){
+
+        try(Connection conMysql = conexionDB.getConexionMysql();
+        Connection conPostgre = conexionDB.getConexionPostgre()){
+
+            // 1.- Buscar Id en MYSQL
+
+            int idTratamiento = -1;
+            String sqlBuscar = "SELECT id_tratamiento FROM tratamientos WHERE nombre_tratamiento = ?";
+
+            try(PreparedStatement ps = conMysql.prepareStatement(sqlBuscar)){
+                ps.setString(1, nombre);
+                try (ResultSet rs = ps.executeQuery()){
+                    if (rs.next()) {
+                        idTratamiento = rs.getInt("id_tratamiento");
+                    }else {
+                        System.out.println("tratamiento no encontrado por nombre");
+                        return;
+                    }
+                }
+            }
+
+
+            // 2.- Borrar een Postgre (primero tabla intermedia)
+
+                // Borrar de salas_tratamientos
+            String sqlDelSalas = "DELETE FROM hospital.salas_tratamientos WHERE id_tratamiento = ?";
+            try(PreparedStatement ps = conPostgre.prepareStatement(sqlDelSalas)){
+                ps.setInt(1, idTratamiento);
+                ps.executeUpdate();
+            }
+
+                // Borrar tratamieentos
+            String sqlDelPostgre = "DELETE FROM hospital.tratamientos WHERE id_tratamiento = ?";
+            try(PreparedStatement ps = conPostgre.prepareStatement(sqlDelPostgre)){
+                ps.setInt(1, idTratamiento);
+                ps.executeUpdate();
+            }
+
+
+            // 3.- Borrar en Mysql, aquñi como hay DELETE CASCADE, se borrarán relaciones
+            String delMysql = "DELETE FROM tratamientos WHERE id_tratamiento = ?";
+            try(PreparedStatement ps = conMysql.prepareStatement(delMysql)){
+                ps.setInt(1, idTratamiento);
+                int filas = ps.executeUpdate();
+
+                System.out.println("Tratamiento '" + nombre + "' (ID: " + idTratamiento + ") eliminado de ambas bases de datos.");
+
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+
+    // Apartado 8 Listar tratamientos con menos de X pacientes asignados
+    public static void listarTratamientosConPocosPacientes(int cantidad){
+
+        String sql = "SELECT t.nombre_tratamiento, COUNT(pt.id_paciente) AS total_pacientes "
+                + "FROM tratamientos t "
+                + "LEFT JOIN pacientes_tratamientos pt ON t.id_tratamiento = pt.id_tratamiento "
+                + "GROUP BY t.id_tratamiento, t.nombre_tratamiento "
+                + "HAVING COUNT(pt.id_paciente) < ?";
+
+        try(Connection con = conexionDB.getConexionMysql();
+        PreparedStatement ps = con.prepareStatement(sql)){
+
+            ps.setInt(1, cantidad);
+            try (ResultSet rs = ps.executeQuery()){
+                System.out.println("Tratamientos con pocos pacientes " + cantidad);
+
+                while (rs.next()) {
+                    String nombre = rs.getString("nombre_tratamiento");
+                    int total =  rs.getInt("total_pacientes");
+                    System.out.println("Tratamiento: "+nombre+ " | Pacientes: "+total);
+                }
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error al listar tratamientos: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
+
+    // Apartado 9 Obtener el total de citas realizadas por cada paciente
+    public static void obtenerTotalCitasPorPaciente(){
+
+        String sql = "SELECT p.nombre, COUNT(c.id_cita) AS total_citas "
+                + "FROM pacientes p "
+                + "LEFT JOIN citas c ON p.id_paciente = c.id_paciente "
+                + "GROUP BY p.id_paciente, p.nombre";
+
+        try (Connection con = conexionDB.getConexionMysql();
+        PreparedStatement ps = con.prepareStatement(sql);
+        ResultSet rs = ps.executeQuery()) {
+
+            System.out.println("--- Total de citas por paciente ---");
+
+            while (rs.next()) {
+                String nombrePaciente = rs.getString("nombre");
+                int totalCitas = rs.getInt("total_citas");
+                System.out.println("Paciente: " + nombrePaciente + " | Citas: " + totalCitas);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error al obtener total de citas: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -49,6 +49,32 @@ public class PasteTEST {
         conexionDB.cerrar();
     }
 
+
+
+
+
+    hospitalApp.crearTratamiento("Vendaje compresivo", "Vendaje para esguince", "Traumatología", "12345678A");
+
+
+
+
+
+System.out.println("--- Probando Eliminar Tratamiento ---");
+
+hospitalApp.eliminarTratamientoPorNombre("Vendaje compresivo");
+hospitalApp.eliminarTratamientoPorNombre("Tratamiento Inexistente"); // Prueba de error
+
+
+
+
+
+hospitalApp.listarTratamientosConPocosPacientes(2);
+
+
+
+
+
+
 */
 
 }
