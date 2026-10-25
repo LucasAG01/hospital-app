@@ -2,6 +2,7 @@ package org.example.hospital;
 
 import java.sql.*;
 import java.time.LocalDate;
+import java.util.*;
 
 public class hospitalApp {
 
@@ -388,10 +389,109 @@ public class hospitalApp {
 
 
 
+    // Apartado 10, Cantidad de tratamientos por sala
+
+    public static void obtenerCantidadTratamientosPorSala(){
+
+        String sql  = "SELECT s.nombre_sala, COUNT(st.id_tratamiento) AS total_tratamientos "
+                + "FROM hospital.salas s "
+                + "LEFT JOIN hospital.salas_tratamientos st ON s.id_sala = st.id_sala "
+                + "GROUP BY s.id_sala, s.nombre_sala";
+
+
+        /*
+            LEFT JOIN: Salas que no tengan tratamiento aparecen con 0
+            COunt(st.id_tratamiento): Cuenta cuántos tratamientos hay en cada grupo (sala)
+            Group by: Agrupa por el ID de la sala y su nombre.
+
+            NO HAY HAVING PORQUE NO PIDE FILTRAR CANTIDAD MINIMA.
+         */
+
+        try(Connection con = conexionDB.getConexionPostgre();
+        PreparedStatement ps = con.prepareStatement(sql);
+        ResultSet rs = ps.executeQuery()) {
+
+            System.out.println("--- Total de tratamientos por sala ---");
+
+            while (rs.next()) {
+                String nombreSala = rs.getString("nombre_sala");
+                int totalTratamientos = rs.getInt("total_tratamientos");
+                System.out.println("Sala: " + nombreSala + " | Tratamiento: " + totalTratamientos);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error al obtener tratamientos por sala: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
+
+    // Apartado 11, Listar tratamientos con especialidades y médicos
+
+        // 1.- Postgre Obtener id de tratamieento, especialidad y médico
+        // 2.- Mysql Obtener nombre y descripción del tratamiento.
+
+    public static void listarTratamientosConEspecialidadYMedico(){
+
+
+
+    }
 
 
 
 
+    // Apartado 12, Obtener todos los pacientes que han recibido un tratamiento
+    //  de una especialidad dada
+
+        // 1.- Postgre Buscar los id_tratamiento que pertenencen a esa especialidad
+        // 2.- Mysql Buscar qué pacieentes han recibido alguno de los tratamientos
+
+    public static void obtenerPacientesPorEspecialidad(int idEspecialidad){
+
+
+        // PRIMERO, obtener todos los pacientes que han recibido un tratamiento de esa especialidad
+        List<Integer>idTratamientos = new ArrayList<>();
+        String sqlPostgre = "SELECT id_tratamiento FROM hospital.tratamientos WHERE id_eespecilidad = ?";
+
+        try(Connection coonPostgre = conexionDB.getConexionPostgre();
+        PreparedStatement ps = coonPostgre.prepareStatement(sqlPostgre)){
+
+            ps.setInt(1, idEspecialidad);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    idTratamientos.add(rs.getInt("id_tratamiento"));
+                    return;
+                }
+            }
+
+            // Si la lista de tratamientos esta vacai, no hay tratamieentos en esa especialdiad
+            if(idTratamientos.isEmpty()){
+                System.out.println("No se encontro el tratamiento id especialidad: " + idEspecialidad);
+                return;
+            }
+
+
+
+            // SEGUNDO, Buscar pacientes en Mysql usando esos IDs
+            // Construir parte de in dinámicamente
+            StringBuilder placeholders = new StringBuilder();
+            for(int i : idTratamientos){
+                placeholders.append("?");
+                if (i<idTratamientos.size()-1){
+                    placeholders.append(",");
+                }
+            }
+
+
+
+
+        } catch (SQLException e) {
+            System.err.println("Error al obtener tratamientos: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+    }
 
 
 

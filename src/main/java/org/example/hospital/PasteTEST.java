@@ -72,7 +72,8 @@ hospitalApp.listarTratamientosConPocosPacientes(2);
 
 
 
-
+System.out.println("--- Probando Cantidad de Tratamientos por Sala ---");
+hospitalApp.obtenerCantidadTratamientosPorSala();
 
 
 */
